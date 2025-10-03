@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema de Empenho de VTR</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fc;
+      padding: 20px;
+    }
+    h2 { margin-top: 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      text-align: center;
+      padding: 6px;
+    }
+    select, input { padding: 4px; width: 95%; }
+    button {
+      margin: 10px 0;
+      padding: 8px 12px;
+      cursor: pointer;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover { background: #0d47a1; }
+    #painel {
+      margin-top: 30px;
+      padding: 15px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    #painel h3 { margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .card {
+      background: #e3f2fd;
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      min-height: 150px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 2px;
+      font-size: 0.85em;
+      color: white;
+    }
+    .section-title {
+      font-weight: bold;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>📋 Sistema de Controle de Empenho de VTR</h2>
+
+<button onclick="addRow()">➕ Adicionar Linha</button>
+
+<table id="empenhoTable">
+  <thead>
+    <tr>
+      <th>Unidade</th>
+      <th>VTR</th>
+      <th>Empenho</th>
+      <th>Horário Início</th>
+      <th>Horário Fim</th>
+      <th>Último J</th>
+      <th>Protocolo</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div id="painel">
+  <h3>📊 Painel de Contagem por Empenho</h3>
+  <div class="grid" id="contagemGrid"></div>
+</div>
+
+<div id="painel">
+  <h3>📌 Estatística por Unidade</h3>
+  <div class="grid" id="unidadeGrid"></div>
+</div>
+
+<script>
+const unidades = [
+ "CPA NORTE (SEDE)", "6 CICOM", "13 CICOM", "15 CICOM", "18 CICOM", "26 CICOM", "27 CICOM",
+ "CPA SUL (SEDE)", "1 CICOM", "2 CICOM", "3 CICOM", "7 CICOM", "24 CICOM",
+ "CPA LESTE (SEDE)", "4 CICOM", "9 CICOM", "11 CICOM", "14 CICOM", "25 CICOM", "28 CICOM", "29 CICOM", "30 CICOM",
+ "CPA OESTE (SEDE)", "5 CICOM", "8 CICOM", "19 CICOM", "20 CICOM", "21 CICOM",
+ "CPA C. SUL/C. OESTE (SEDE)", "10 CICOM", "12 CICOM", "16 CICOM", "17 CICOM", "22 CICOM", "23 CICOM",
+ "FT", "BPTRAN", "CPTUR", "RMP", "CICLO", "ROCAM", "CHOQUE", "MARTE", "RPMON", "CIPCÃES", "COE",
+ "BPAMB", "CECOPOM", "GRAER", "BPG", "NPPM"
+];
+
+const empenhos = {
+  "J1": "Atividade Fim",
+  "J2": "Atividade administrativa",
+  "J3": "Substituição de Guarnição PM",
+  "J4": "Refeição",
+  "J5": "Abastecimento",
+  "J6": "Limpeza de viatura",
+  "J7": "Manutenção mecânica",
+  "J8": "Necessidade Fisiológicas",
+  "J9": "Deslocamento para ocorrência",
+  "J10": "Chegada no local da ocorrência",
+  "J11": "Saída do local da ocorrência",
+  "J12": "Guarnição na base",
+  "J15": "Operação Policial Militar"
+};
+
+// Cores diferentes para cada tipo de J
+const coresJ = {
+  "J1": "#1b5e20", "J2": "#33691e", "J3": "#f57f17", "J4": "#ff6f00",
+  "J5": "#e65100", "J6": "#bf360c", "J7": "#6a1b9a", "J8": "#4a148c",
+  "J9": "#0d47a1", "J10": "#1565c0", "J11": "#0277bd", "J12": "#00838f",
+  "J15": "#c2185b"
+};
+
+// Contadores gerais
+let contagem = {};
+for (let key in empenhos) contagem[key] = 0;
+
+// Contagem por unidade
+let contagemUnidade = {};
+unidades.forEach(u => contagemUnidade[u] = { total: 0, empenhos: {}, vtrs: [], protocolos: [] });
+
+function atualizarPainel() {
+  const grid = document.getElementById("contagemGrid");
+  grid.innerHTML = "";
+  for (let key in empenhos) {
+    let card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `${key} - ${empenhos[key]}<br><span style="font-size:18px">${contagem[key]}</span>`;
+    grid.appendChild(card);
+  }
+}
+
+function atualizarUnidadeGrid() {
+  const grid = document.getElementById("unidadeGrid");
+  grid.innerHTML = "";
+  for (let unidade in contagemUnidade) {
+    if (contagemUnidade[unidade].total > 0) {
+      let card = document.createElement("div");
+      card.className = "card";
+
+      // Lista de empenhos com cores e protocolos
+      let listaEmpenhos = "";
+      for (let e in contagemUnidade[unidade].empenhos) {
+        // Mostrar contagem e protocolos correspondentes
+        let protos = contagemUnidade[unidade].protocolos.filter(p => p.includes(e)).join(", ");
+        listaEmpenhos += `<span class="tag" style="background:${coresJ[e]}">${e}(${contagemUnidade[unidade].empenhos[e]})${protos ? ' - P: '+protos : ''}</span> `;
+      }
+
+      // Lista de VTRs
+      let listaVTRs = contagemUnidade[unidade].vtrs.map(v => `<span class="tag" style="background:#64b5f6">${v}</span>`).join(" ");
+
+      card.innerHTML = `
+        <strong>${unidade}</strong><br>
+        Total: ${contagemUnidade[unidade].total}<br>
+        <div class="section-title">Empenhos:</div> ${listaEmpenhos}<br>
+        <div class="section-title">VTRs:</div> ${listaVTRs}
+      `;
+      grid.appendChild(card);
+    }
+  }
+}
+
+function addRow() {
+  let table = document.getElementById("empenhoTable").getElementsByTagName("tbody")[0];
+  let newRow = table.insertRow();
+
+  // Unidade
+  let cell1 = newRow.insertCell(0);
+  let selectUnidade = document.createElement("select");
+  unidades.forEach(u => {
+    let option = document.createElement("option");
+    option.value = u; option.text = u;
+    selectUnidade.appendChild(option);
+  });
+  cell1.appendChild(selectUnidade);
+
+  // VTR
+  let cell2 = newRow.insertCell(1);
+  let inputVtr = document.createElement("input");
+  inputVtr.placeholder = "Nome da VTR";
+  cell2.appendChild(inputVtr);
+
+  // Empenho
+  let cell3 = newRow.insertCell(2);
+  let selectEmpenho = document.createElement("select");
+  for (let key in empenhos) {
+    let option = document.createElement("option");
+    option.value = key; option.text = `${key} - ${empenhos[key]}`;
+    selectEmpenho.appendChild(option);
+  }
+
+  // Horário início
+  let cell4 = newRow.insertCell(3); cell4.innerText = "";
+
+  // Horário fim
+  let cell5 = newRow.insertCell(4); cell5.innerText = "";
+
+  // Último J
+  let cell6 = newRow.insertCell(5); cell6.innerText = "";
+
+  // Protocolo
+  let cell7 = newRow.insertCell(6);
+  let inputProtocolo = document.createElement("input");
+  inputProtocolo.placeholder = "Nº Protocolo";
+  cell7.appendChild(inputProtocolo);
+
+  // Evento de seleção de empenho
+  selectEmpenho.addEventListener("change", function() {
+    let now = new Date().toLocaleString();
+    if (!cell4.innerText) { cell4.innerText = now; } 
+    else { cell5.innerText = now; }
+    contagem[this.value]++;
+    cell6.innerText = this.value;
+
+    let unidadeSel = selectUnidade.value;
+    let vtr = inputVtr.value.trim();
+    let protocolo = inputProtocolo.value.trim();
+
+    contagemUnidade[unidadeSel].total++;
+    if (!contagemUnidade[unidadeSel].empenhos[this.value]) {
+      contagemUnidade[unidadeSel].empenhos[this.value] = 0;
+    }
+    contagemUnidade[unidadeSel].empenhos[this.value]++;
+
+    // Adiciona VTR
+    if (vtr && !contagemUnidade[unidadeSel].vtrs.includes(vtr)) {
+      contagemUnidade[unidadeSel].vtrs.push(vtr);
+    }
+
+    // Adiciona protocolo junto ao J
+    if (protocolo) {
+      let protStr = `${this.value}-${protocolo}`;
+      if (!contagemUnidade[unidadeSel].protocolos.includes(protStr)) {
+        contagemUnidade[unidadeSel].protocolos.push(protStr);
+      }
+    }
+
+    atualizarPainel();
+    atualizarUnidadeGrid();
+  });
+
+  cell3.appendChild(selectEmpenho);
+}
+
+// Inicializa painel
+atualizarPainel();
+atualizarUnidadeGrid();
+</script>
+
+</body>
+</html>
