@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulário - Mapa da Força</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #0077cc;
+      color: white;
+    }
+    input, select, button {
+      padding: 6px;
+      margin: 3px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #0077cc;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>MAPA DA FORÇA - FORMULÁRIO</h2>
+
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>Unidade</th>
+        <th>Viaturas</th>
+        <th>Hora Início</th>
+        <th>Hora Fim</th>
+        <th>J</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <select name="unidade">
+            <option value="">Selecione</option>
+            <option>CPA NORTE</option>
+            <option>CPA SUL</option>
+            <option>CPA LESTE</option>
+            <option>CPA OESTE</option>
+            <option>ROCAM</option>
+            <option>CHOQUE</option>
+            <option>BPTRAN</option>
+            <option>RPMON</option>
+            <option>CICLO</option>
+            <option>COE</option>
+          </select>
+        </td>
+        <td><input type="text" placeholder="Adicionar viaturas"></td>
+        <td><input type="time" class="inicio"></td>
+        <td><input type="time" class="fim"></td>
+        <td><input type="text" class="jornada" readonly></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <button onclick="adicionarLinha()">+ Adicionar Linha</button>
+
+  <script>
+    function adicionarLinha() {
+      let tabela = document.getElementById("tabela").getElementsByTagName('tbody')[0];
+      let novaLinha = tabela.rows[0].cloneNode(true);
+      novaLinha.querySelectorAll("input").forEach(input => input.value = "");
+      novaLinha.querySelector("select").selectedIndex = 0;
+      tabela.appendChild(novaLinha);
+    }
+
+    // Calcula jornada automaticamente
+    document.addEventListener("input", function(e){
+      if(e.target.classList.contains("inicio") || e.target.classList.contains("fim")){
+        let linha = e.target.closest("tr");
+        let inicio = linha.querySelector(".inicio").value;
+        let fim = linha.querySelector(".fim").value;
+        let campoJ = linha.querySelector(".jornada");
+        if(inicio && fim){
+          let h1 = new Date("2000-01-01 " + inicio);
+          let h2 = new Date("2000-01-01 " + fim);
+          let diff = (h2 - h1) / 3600000; // horas
+          campoJ.value = diff > 0 ? diff + "h" : "Erro";
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
