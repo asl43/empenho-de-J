@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Empenho de VTR</title>
   <style>
+    /* --- Estilos CSS --- */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -45,6 +46,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      white-space: nowrap;
     }
     button:hover { background: #0d47a1; transform: translateY(-2px); }
     button.danger { background: #d32f2f; }
@@ -57,6 +59,8 @@
       margin-bottom: 30px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-height: 60vh; /* Limite de altura para a tabela */
+      overflow-y: auto; /* Adiciona scroll vertical se a tabela for muito longa */
     }
     table {
       width: 100%;
@@ -77,6 +81,8 @@
       border: 1px solid #e0e0e0;
       padding: 8px;
       text-align: center;
+      vertical-align: middle;
+      white-space: nowrap;
     }
     tr:hover { background: #f5f5f5; }
     select, input {
@@ -139,6 +145,7 @@
       color: white;
       font-weight: 600;
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      white-space: normal;
     }
     .section-title {
       font-weight: bold;
@@ -154,6 +161,9 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     .delete-btn:hover { background: #b71c1c; }
     
@@ -190,6 +200,32 @@
     .filter-options select {
       flex: 1;
       min-width: 200px;
+    }
+
+    /* Estilos para o Modal */
+    .modal-overlay {
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0,0,0,0.6); 
+      z-index: 1000; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+    }
+    .modal-content {
+      background:white; 
+      padding:30px; 
+      border-radius:12px; 
+      max-width:500px; 
+      width:90%;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .modal-content h3 {
+      margin-top:0;
+      color: #1976d2;
     }
   </style>
 </head>
@@ -233,6 +269,33 @@
     <button onclick="addRow()">➕ Adicionar Registro</button>
     <button class="success" onclick="exportarDados()">📥 Exportar CSV</button>
     <button class="danger" onclick="limparTudo()">🗑️ Limpar Tudo</button>
+    <button style="background:#9c27b0" onclick="mostrarModalUnidade()">➕ Adicionar Unidade</button>
+    <button style="background:#ff6f00" onclick="mostrarModalEmpenho()">➕ Adicionar Empenho (J)</button>
+  </div>
+
+  <div id="modalUnidade" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h3>➕ Adicionar Nova Unidade</h3>
+      <input type="text" id="novaUnidade" placeholder="Nome da Unidade" style="width:100%; padding:10px; margin:10px 0; font-size:16px;">
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button onclick="adicionarUnidade()" style="flex:1;">Adicionar</button>
+        <button onclick="fecharModalUnidade()" class="danger" style="flex:1;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalEmpenho" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h3>➕ Adicionar Novo Empenho (J)</h3>
+      <input type="text" id="novoEmpenhoCodigo" placeholder="Código (ex: J16)" style="width:100%; padding:10px; margin:10px 0; font-size:16px;">
+      <input type="text" id="novoEmpenhoDescricao" placeholder="Descrição do Empenho" style="width:100%; padding:10px; margin:10px 0; font-size:16px;">
+      <label for="novoEmpenhoColor" style="display:block; margin-top:10px; font-weight:bold;">Cor da Tag:</label>
+      <input type="color" id="novoEmpenhoColor" value="#1976d2" style="width:100%; padding:5px; margin:10px 0; height:50px;">
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button onclick="adicionarEmpenho()" style="flex:1;">Adicionar</button>
+        <button onclick="fecharModalEmpenho()" class="danger" style="flex:1;">Cancelar</button>
+      </div>
+    </div>
   </div>
 
   <div class="table-container">
@@ -265,10 +328,17 @@
     <h3><span>📌</span> Estatística por Unidade</h3>
     <div class="grid" id="unidadeGrid"></div>
   </div>
+
+  <div class="painel">
+    <h3><span>🚓</span> Estatística por VTR</h3>
+    <div class="grid" id="vtrGrid"></div>
+  </div>
 </div>
 
 <script>
-const unidades = [
+// --- Variáveis Iniciais e Estruturas de Dados ---
+
+let unidades = [
  "CPA NORTE (SEDE)", "6 CICOM", "13 CICOM", "15 CICOM", "18 CICOM", "26 CICOM", "27 CICOM",
  "CPA SUL (SEDE)", "1 CICOM", "2 CICOM", "3 CICOM", "7 CICOM", "24 CICOM",
  "CPA LESTE (SEDE)", "4 CICOM", "9 CICOM", "11 CICOM", "14 CICOM", "25 CICOM", "28 CICOM", "29 CICOM", "30 CICOM",
@@ -278,7 +348,7 @@ const unidades = [
  "BPAMB", "CECOPOM", "GRAER", "BPG", "NPPM"
 ];
 
-const empenhos = {
+let empenhos = {
   "J1": "Atividade Fim",
   "J2": "Atividade administrativa",
   "J3": "Substituição de Guarnição PM",
@@ -294,7 +364,7 @@ const empenhos = {
   "J15": "Operação Policial Militar"
 };
 
-const coresJ = {
+let coresJ = {
   "J1": "#1b5e20", "J2": "#33691e", "J3": "#f57f17", "J4": "#ff6f00",
   "J5": "#e65100", "J6": "#bf360c", "J7": "#6a1b9a", "J8": "#4a148c",
   "J9": "#0d47a1", "J10": "#1565c0", "J11": "#0277bd", "J12": "#00838f",
@@ -302,63 +372,85 @@ const coresJ = {
 };
 
 let registros = [];
-let contagem = {};
-for (let key in empenhos) contagem[key] = 0;
+let contagem = {}; // Contagem total por J
+let contagemUnidade = {}; // Estatística por Unidade
+let contagemVTR = {}; // Estatística por VTR
 
-let contagemUnidade = {};
-unidades.forEach(u => contagemUnidade[u] = { total: 0, empenhos: {}, vtrs: [], protocolos: [], naturezas: [] });
+let unidadeFixa = null; 
 
-let unidadeFixa = null; // Armazena a unidade selecionada
+// --- Funções de Persistência de Dados (localStorage) ---
 
-// Inicializar filtros
-function inicializarFiltros() {
-  const filtroUnidade = document.getElementById('filtroUnidade');
-  const filtroEmpenho = document.getElementById('filtroEmpenho');
-  
-  unidades.forEach(u => {
-    const opt = document.createElement('option');
-    opt.value = u;
-    opt.text = u;
-    filtroUnidade.appendChild(opt);
-  });
-  
-  for (let key in empenhos) {
-    const opt = document.createElement('option');
-    opt.value = key;
-    opt.text = `${key} - ${empenhos[key]}`;
-    filtroEmpenho.appendChild(opt);
+function salvarDados() {
+  localStorage.setItem('vtr_unidades', JSON.stringify(unidades));
+  localStorage.setItem('vtr_empenhos', JSON.stringify(empenhos));
+  localStorage.setItem('vtr_coresJ', JSON.stringify(coresJ));
+  localStorage.setItem('vtr_registros', JSON.stringify(registros));
+  localStorage.setItem('vtr_unidadeFixa', unidadeFixa);
+}
+
+function carregarDados() {
+  const savedUnidades = localStorage.getItem('vtr_unidades');
+  const savedEmpenhos = localStorage.getItem('vtr_empenhos');
+  const savedCoresJ = localStorage.getItem('vtr_coresJ');
+  const savedRegistros = localStorage.getItem('vtr_registros');
+  const savedUnidadeFixa = localStorage.getItem('vtr_unidadeFixa');
+
+  if (savedUnidades) unidades = JSON.parse(savedUnidades);
+  if (savedEmpenhos) empenhos = JSON.parse(savedEmpenhos);
+  if (savedCoresJ) coresJ = JSON.parse(savedCoresJ);
+  if (savedUnidadeFixa !== 'null') unidadeFixa = savedUnidadeFixa;
+
+  // Inicializa contagens
+  for (let key in empenhos) contagem[key] = 0;
+  unidades.forEach(u => contagemUnidade[u] = { total: 0, empenhos: {}, vtrs: [], protocolos: [], naturezas: [] });
+
+  if (savedRegistros) {
+    registros = JSON.parse(savedRegistros);
+    // Transforma a data do formato de exibição 'dd/mm/yyyy hh:mm:ss' para o formato Date nativo
+    // para garantir que o cálculo de tempo funcione em todos os navegadores
+    registros.forEach(r => {
+        if (r.horaInicio) r.horaInicio = formatarDataParaCalculo(r.horaInicio);
+        if (r.horaFim) r.horaFim = formatarDataParaCalculo(r.horaFim);
+    });
+    reconstruirTabelaEContagens();
   }
 }
 
-function aplicarFiltros() {
-  const filtroU = document.getElementById('filtroUnidade').value;
-  const filtroE = document.getElementById('filtroEmpenho').value;
-  const tbody = document.getElementById('empenhoTable').getElementsByTagName('tbody')[0];
-  
-  for (let i = 0; i < tbody.rows.length; i++) {
-    const row = tbody.rows[i];
-    const unidade = row.cells[0].querySelector('select').value;
-    const empenho = row.cells[6].innerText;
-    
-    let mostrar = true;
-    if (filtroU && unidade !== filtroU) mostrar = false;
-    if (filtroE && empenho !== filtroE) mostrar = false;
-    
-    row.style.display = mostrar ? '' : 'none';
-  }
+// Funções de formatação de data para garantir compatibilidade
+function formatarDataParaExibicao(dataString) {
+    if (!dataString) return '';
+    try {
+        const d = new Date(dataString);
+        // Formata para 'dd/mm/yyyy hh:mm:ss'
+        const datePart = d.toLocaleDateString('pt-BR'); 
+        const timePart = d.toLocaleTimeString('pt-BR', { hour12: false });
+        return `${datePart} ${timePart}`;
+    } catch (e) {
+        return dataString; // Retorna o original se houver erro
+    }
 }
 
-function limparFiltros() {
-  document.getElementById('filtroUnidade').value = '';
-  document.getElementById('filtroEmpenho').value = '';
-  aplicarFiltros();
+function formatarDataParaCalculo(dataExibicao) {
+    if (!dataExibicao || dataExibicao.includes('/')) {
+        // Assume o formato 'dd/mm/yyyy hh:mm:ss' e reverte para 'yyyy-mm-dd hh:mm:ss' (ISO like)
+        // para garantir que o new Date() funcione
+        const parts = dataExibicao.split(' ');
+        if (parts.length === 2) {
+            const dateParts = parts[0].split('/');
+            if (dateParts.length === 3) {
+                return `${dateParts[2]}-${dateParts[1]}-${dateParts[0]} ${parts[1]}`;
+            }
+        }
+    }
+    return dataExibicao; // Retorna o original se já for um formato compatível
 }
 
 function calcularDuracao(inicio, fim) {
   if (!inicio || !fim) return '-';
-  const d1 = new Date(inicio.split(' ')[0].split('/').reverse().join('-') + ' ' + inicio.split(' ')[1]);
-  const d2 = new Date(fim.split(' ')[0].split('/').reverse().join('-') + ' ' + fim.split(' ')[1]);
-  const diff = Math.abs(d2 - d1) / 1000 / 60;
+  // Converte de volta para Date objects
+  const d1 = new Date(formatarDataParaCalculo(inicio));
+  const d2 = new Date(formatarDataParaCalculo(fim));
+  const diff = Math.abs(d2 - d1) / 1000 / 60; // Diferença em minutos
   const horas = Math.floor(diff / 60);
   const mins = Math.floor(diff % 60);
   return `${horas}h ${mins}m`;
@@ -366,27 +458,229 @@ function calcularDuracao(inicio, fim) {
 
 function calcularTempoDecorrido(inicio) {
   if (!inicio) return '-';
-  const d1 = new Date(inicio.split(' ')[0].split('/').reverse().join('-') + ' ' + inicio.split(' ')[1]);
+  const d1 = new Date(formatarDataParaCalculo(inicio));
   const agora = new Date();
-  const diff = Math.abs(agora - d1) / 1000 / 60;
+  const diff = Math.abs(agora - d1) / 1000 / 60; // Diferença em minutos
   const horas = Math.floor(diff / 60);
   const mins = Math.floor(diff % 60);
   return `${horas}h ${mins}m`;
 }
 
-// Atualizar tempo decorrido a cada minuto
+// Atualizar tempo decorrido a cada 10 segundos
 setInterval(() => {
   const tbody = document.getElementById('empenhoTable').getElementsByTagName('tbody')[0];
   for (let i = 0; i < tbody.rows.length; i++) {
     const row = tbody.rows[i];
-    const inicio = row.cells[3].innerText;
-    const fim = row.cells[4].innerText;
+    const registro = registros[i];
     
-    if (inicio && !fim) {
-      row.cells[5].innerText = calcularTempoDecorrido(inicio);
+    if (registro && registro.horaInicio && !registro.horaFim) {
+      // row.cells[5] é a célula de Tempo Decorrido
+      row.cells[5].innerText = calcularTempoDecorrido(registro.horaInicio);
     }
   }
-}, 60000); // Atualiza a cada 1 minuto
+}, 10000); // 10 segundos para atualização
+
+// --- Funções de Reconstrução e Atualização de UI ---
+
+function reconstruirTabelaEContagens() {
+  const tbody = document.getElementById('empenhoTable').getElementsByTagName('tbody')[0];
+  tbody.innerHTML = '';
+  
+  // Limpa contagens para recalculá-las
+  for (let key in contagem) contagem[key] = 0;
+  unidades.forEach(u => contagemUnidade[u] = { total: 0, empenhos: {}, vtrs: [], protocolos: [], naturezas: [] });
+  contagemVTR = {};
+  
+  registros.forEach((registro, index) => {
+    // 1. Recalcula Contagens
+    if (registro.ultimoJ && contagem[registro.ultimoJ] !== undefined) {
+      contagem[registro.ultimoJ]++;
+      const unidade = registro.unidade;
+      const vtr = registro.vtr;
+      const jCode = registro.ultimoJ;
+      
+      if (unidade && contagemUnidade[unidade]) {
+        contagemUnidade[unidade].total++;
+        if (!contagemUnidade[unidade].empenhos[jCode]) contagemUnidade[unidade].empenhos[jCode] = 0;
+        contagemUnidade[unidade].empenhos[jCode]++;
+        
+        // VTRs na Unidade
+        if (vtr && !contagemUnidade[unidade].vtrs.includes(vtr)) {
+            contagemUnidade[unidade].vtrs.push(vtr);
+        }
+
+        // Protocolos e Naturezas
+        if (registro.protocolo) {
+            let protStr = `${jCode}-${registro.protocolo}`;
+            // Adiciona apenas se for único para a unidade/empenho
+            if (!contagemUnidade[unidade].protocolos.includes(protStr)) {
+                contagemUnidade[unidade].protocolos.push(protStr);
+            }
+        }
+        if (registro.natureza) {
+            let natStr = `${jCode}-${registro.natureza}`;
+             // Adiciona apenas se for único para a unidade/empenho
+            if (!contagemUnidade[unidade].naturezas.includes(natStr)) {
+                contagemUnidade[unidade].naturezas.push(natStr);
+            }
+        }
+      }
+
+      // 2. Calcula Contagem VTR
+      if (vtr) {
+        if (!contagemVTR[vtr]) {
+          contagemVTR[vtr] = { total: 0, empenhos: {}, unidade: unidade };
+        }
+        contagemVTR[vtr].total++;
+        if (!contagemVTR[vtr].empenhos[jCode]) contagemVTR[vtr].empenhos[jCode] = 0;
+        contagemVTR[vtr].empenhos[jCode]++;
+      }
+    }
+    
+    // 3. Recria Linha na Tabela
+    recreateRow(registro, index);
+  });
+  
+  inicializarFiltros();
+  atualizarEstatisticas();
+  aplicarFiltros(); // Reaplicar filtros após reconstrução
+  atualizarPainel();
+  atualizarUnidadeGrid();
+  atualizarVTRGrid();
+}
+
+function recreateRow(registro, index) {
+  let table = document.getElementById("empenhoTable").getElementsByTagName("tbody")[0];
+  let newRow = table.insertRow();
+
+  // Células 0 a 10
+  for (let i = 0; i <= 10; i++) newRow.insertCell(i);
+
+  // 0. Unidade
+  let selectUnidade = document.createElement("select");
+  selectUnidade.innerHTML = '<option value="">Selecione...</option>';
+  unidades.forEach(u => {
+    let option = document.createElement("option");
+    option.value = u; option.text = u;
+    selectUnidade.appendChild(option);
+  });
+  selectUnidade.value = registro.unidade;
+  selectUnidade.onchange = () => { 
+    registros[index].unidade = selectUnidade.value; 
+    if (!unidadeFixa && selectUnidade.value) unidadeFixa = selectUnidade.value;
+    salvarDados();
+    reconstruirTabelaEContagens(); // Recalcula tudo ao mudar a unidade
+  };
+  newRow.cells[0].appendChild(selectUnidade);
+
+  // 1. VTR
+  let inputVtr = document.createElement("input");
+  inputVtr.placeholder = "Nome da VTR";
+  inputVtr.value = registro.vtr;
+  inputVtr.oninput = () => { 
+      registros[index].vtr = inputVtr.value.toUpperCase(); 
+      salvarDados(); 
+      atualizarEstatisticas(); 
+      reconstruirTabelaEContagens(); // Recalcula tudo para a VTR
+  };
+  newRow.cells[1].appendChild(inputVtr);
+
+  // 2. Empenho (Select principal)
+  let selectEmpenho = document.createElement("select");
+  for (let key in empenhos) {
+    let option = document.createElement("option");
+    option.value = key; option.text = `${key} - ${empenhos[key]}`;
+    selectEmpenho.appendChild(option);
+  }
+  selectEmpenho.value = registro.ultimoJ || 'J1'; 
+  newRow.cells[2].appendChild(selectEmpenho);
+  
+  // Adiciona o EventListener para o Empenho (principal lógica)
+  selectEmpenho.addEventListener("change", function() {
+    handleEmpenhoChange(newRow, index, selectUnidade, inputVtr, inputProtocolo, inputNatureza);
+  });
+
+
+  // 3. Horário início (Exibição)
+  newRow.cells[3].innerText = formatarDataParaExibicao(registro.horaInicio);
+
+  // 4. Horário fim (Exibição)
+  newRow.cells[4].innerText = formatarDataParaExibicao(registro.horaFim);
+
+  // 5. Tempo Decorrido (atualizado pelo setInterval)
+  newRow.cells[5].innerText = registro.horaFim ? "-" : calcularTempoDecorrido(registro.horaInicio);
+
+  // 6. Duração Total (Calculada ao Finalizar)
+  newRow.cells[6].innerText = calcularDuracao(registro.horaInicio, registro.horaFim);
+
+  // 7. Último J (Exibição)
+  newRow.cells[7].innerText = registro.ultimoJ || 'J1';
+
+  // 8. Protocolo
+  let inputProtocolo = document.createElement("input");
+  inputProtocolo.placeholder = "Nº Protocolo";
+  inputProtocolo.value = registro.protocolo || "";
+  inputProtocolo.oninput = () => { registros[index].protocolo = inputProtocolo.value.toUpperCase(); salvarDados(); };
+  newRow.cells[8].appendChild(inputProtocolo);
+
+  // 9. Natureza
+  let inputNatureza = document.createElement("input");
+  inputNatureza.placeholder = "Natureza";
+  inputNatureza.value = registro.natureza || "";
+  inputNatureza.oninput = () => { registros[index].natureza = inputNatureza.value.toUpperCase(); salvarDados(); };
+  newRow.cells[9].appendChild(inputNatureza);
+
+  // 10. Ações
+  let deleteBtn = document.createElement("button");
+  deleteBtn.className = "delete-btn";
+  deleteBtn.textContent = "🗑️";
+  deleteBtn.onclick = () => removerLinha(deleteBtn);
+  newRow.cells[10].appendChild(deleteBtn);
+}
+
+
+// --- Lógica de Empenho Principal ---
+
+function handleEmpenhoChange(row, index, selectUnidade, inputVtr, inputProtocolo, inputNatureza) {
+    const now = new Date();
+    // Armazena no formato nativo (ISO like) para cálculo, mas exibe o BR
+    const dataHoraCalculo = now.toISOString();
+    const newJ = row.cells[2].querySelector('select').value;
+    
+    // Atualiza Horários
+    if (!registros[index].horaInicio || registros[index].horaFim) {
+      // Começa um novo registro de tempo
+      registros[index].horaInicio = dataHoraCalculo;
+      registros[index].horaFim = ''; // Garante que FIM está vazio
+      
+      row.cells[3].innerText = formatarDataParaExibicao(dataHoraCalculo); // Horário Início (Exibição)
+      row.cells[4].innerText = ""; // Horário Fim (Exibição)
+      row.cells[5].innerText = calcularTempoDecorrido(dataHoraCalculo); // Tempo Decorrido
+      row.cells[6].innerText = "-"; // Duração Total
+      
+    } else {
+      // Finaliza o registro de tempo
+      registros[index].horaFim = dataHoraCalculo;
+
+      row.cells[4].innerText = formatarDataParaExibicao(dataHoraCalculo); // Horário Fim (Exibição)
+      row.cells[5].innerText = "-"; // Tempo Decorrido
+      row.cells[6].innerText = calcularDuracao(registros[index].horaInicio, dataHoraCalculo); // Duração Total
+    }
+    
+    // Atualiza J
+    registros[index].ultimoJ = newJ;
+    row.cells[7].innerText = newJ; // Último J
+
+    // Força atualização dos dados de entrada
+    registros[index].unidade = selectUnidade.value;
+    registros[index].vtr = inputVtr.value.trim().toUpperCase();
+    registros[index].protocolo = inputProtocolo.value.trim().toUpperCase();
+    registros[index].natureza = inputNatureza.value.trim().toUpperCase();
+    
+    // Recalcula todas as estatísticas para garantir integridade
+    reconstruirTabelaEContagens(); 
+    salvarDados();
+}
 
 function atualizarEstatisticas() {
   const vtrsUnicas = new Set();
@@ -411,7 +705,7 @@ function atualizarPainel() {
     card.innerHTML = `
       <div style="font-size:16px;margin-bottom:5px">${key}</div>
       <div style="font-size:12px;opacity:0.8;margin-bottom:8px">${empenhos[key]}</div>
-      <div style="font-size:28px;font-weight:bold;color:#1976d2">${contagem[key]}</div>
+      <div style="font-size:28px;font-weight:bold;color:#1976d2">${contagem[key] || 0}</div>
     `;
     grid.appendChild(card);
   }
@@ -427,26 +721,39 @@ function atualizarUnidadeGrid() {
 
       let listaEmpenhos = "";
       for (let e in contagemUnidade[unidade].empenhos) {
-        // Filtrar protocolos e naturezas para este empenho específico
-        const protocolosDoEmpenho = contagemUnidade[unidade].protocolos.filter(p => p.startsWith(e + '-'));
-        const naturezasDoEmpenho = contagemUnidade[unidade].naturezas.filter(n => n.startsWith(e + '-'));
+        
+        // Protocolos e Naturezas específicos do J na Unidade
+        const protocolosDoEmpenho = contagemUnidade[unidade].protocolos
+          .filter(p => p.startsWith(e + '-'))
+          .map(p => p.split('-')[1])
+          .filter(p => p); // Remove vazios
+        
+        const naturezasDoEmpenho = contagemUnidade[unidade].naturezas
+          .filter(n => n.startsWith(e + '-'))
+          .map(n => n.split('-')[1])
+          .filter(n => n); // Remove vazios
         
         let detalhes = '';
         if (protocolosDoEmpenho.length > 0 || naturezasDoEmpenho.length > 0) {
-          detalhes = '<br><small>';
-          if (protocolosDoEmpenho.length > 0) {
-            detalhes += 'P: ' + protocolosDoEmpenho.map(p => p.split('-')[1]).join(', ');
+          // Usa Set para obter valores únicos
+          const protUnicos = [...new Set(protocolosDoEmpenho)].join(', ');
+          const natUnicas = [...new Set(naturezasDoEmpenho)].join(', ');
+
+          detalhes = '<br><small style="font-size:0.75em; line-height:1.2; display:block; margin-top:3px;">';
+          if (protUnicos) {
+            detalhes += '📋 P: ' + protUnicos;
           }
-          if (naturezasDoEmpenho.length > 0) {
-            if (protocolosDoEmpenho.length > 0) detalhes += ' | ';
-            detalhes += 'N: ' + naturezasDoEmpenho.map(n => n.split('-')[1]).join(', ');
+          if (natUnicas) {
+            if (protUnicos) detalhes += '<br>';
+            detalhes += '📝 N: ' + natUnicas;
           }
           detalhes += '</small>';
         }
         
-        listaEmpenhos += `<span class="tag" style="background:${coresJ[e]}">${e} (${contagemUnidade[unidade].empenhos[e]})${detalhes}</span> `;
+        listaEmpenhos += `<span class="tag" style="background:${coresJ[e] || '#607d8b'}; display:block; margin-bottom: 5px;">${e} (${contagemUnidade[unidade].empenhos[e]})${detalhes}</span> `;
       }
 
+      // VTRs ativas na Unidade
       let listaVTRs = contagemUnidade[unidade].vtrs.map(v => 
         `<span class="tag" style="background:#64b5f6">${v}</span>`
       ).join(" ");
@@ -464,36 +771,47 @@ function atualizarUnidadeGrid() {
   }
 }
 
+function atualizarVTRGrid() {
+  const grid = document.getElementById("vtrGrid");
+  grid.innerHTML = "";
+  
+  for (let vtr in contagemVTR) {
+    if (contagemVTR[vtr].total > 0) {
+      let card = document.createElement("div");
+      card.className = "card card-unidade";
+      
+      let listaEmpenhos = "";
+      for (let e in contagemVTR[vtr].empenhos) {
+        listaEmpenhos += `<span class="tag" style="background:${coresJ[e] || '#607d8b'}">${e} (${contagemVTR[vtr].empenhos[e]})</span> `;
+      }
+      
+      card.innerHTML = `
+        <strong style="font-size:16px;color:#1976d2;margin-bottom:8px;display:block">🚓 ${vtr}</strong>
+        <div style="font-size:14px;margin-bottom:5px">Total de Empenhos: <strong>${contagemVTR[vtr].total}</strong></div>
+        <div class="section-title">Empenhos Registrados:</div>
+        <div style="margin:5px 0">${listaEmpenhos || '<em>Nenhum</em>'}</div>
+        <div class="section-title">Unidade:</div>
+        <div style="margin:5px 0"><span class="tag" style="background:#ff9800">${contagemVTR[vtr].unidade || 'N/A'}</span></div>
+      `;
+      grid.appendChild(card);
+    }
+  }
+}
+
 function removerLinha(btn) {
   const row = btn.closest('tr');
-  const index = row.rowIndex - 1;
+  const index = row.rowIndex - 1; // -1 por causa do <thead>
   
   if (confirm('Deseja realmente remover este registro?')) {
-    const registro = registros[index];
-    if (registro.ultimoJ) {
-      contagem[registro.ultimoJ]--;
-      const unidade = registro.unidade;
-      if (contagemUnidade[unidade]) {
-        contagemUnidade[unidade].total--;
-        if (contagemUnidade[unidade].empenhos[registro.ultimoJ]) {
-          contagemUnidade[unidade].empenhos[registro.ultimoJ]--;
-        }
-      }
-    }
-    
     registros.splice(index, 1);
     row.remove();
-    atualizarPainel();
-    atualizarUnidadeGrid();
-    atualizarEstatisticas();
+    reconstruirTabelaEContagens(); // Recalcula tudo
+    salvarDados();
   }
 }
 
 function addRow() {
-  let table = document.getElementById("empenhoTable").getElementsByTagName("tbody")[0];
-  let newRow = table.insertRow();
-  
-  const registro = {
+  const newRowData = {
     unidade: unidadeFixa || '',
     vtr: '',
     ultimoJ: 'J1',
@@ -502,192 +820,145 @@ function addRow() {
     protocolo: '',
     natureza: ''
   };
-  registros.push(registro);
+  registros.push(newRowData);
   const index = registros.length - 1;
 
-  // Unidade
-  let cell1 = newRow.insertCell(0);
-  let selectUnidade = document.createElement("select");
-  selectUnidade.innerHTML = '<option value="">Selecione...</option>';
-  unidades.forEach(u => {
-    let option = document.createElement("option");
-    option.value = u; option.text = u;
-    selectUnidade.appendChild(option);
-  });
+  recreateRow(newRowData, index);
   
-  // Se há unidade fixa, seleciona automaticamente
+  // Define a unidade inicial
   if (unidadeFixa) {
-    selectUnidade.value = unidadeFixa;
-    registro.unidade = unidadeFixa;
+    const tableRow = document.getElementById("empenhoTable").getElementsByTagName("tbody")[0].rows[index];
+    tableRow.cells[0].querySelector('select').value = unidadeFixa;
+    registros[index].unidade = unidadeFixa;
   }
   
-  selectUnidade.onchange = () => { 
-    registros[index].unidade = selectUnidade.value;
-    // Define como unidade fixa se for a primeira seleção
-    if (!unidadeFixa && selectUnidade.value) {
-      unidadeFixa = selectUnidade.value;
-    }
-  };
-  cell1.appendChild(selectUnidade);
-
-  // VTR
-  let cell2 = newRow.insertCell(1);
-  let inputVtr = document.createElement("input");
-  inputVtr.placeholder = "Nome da VTR";
-  inputVtr.oninput = () => { registros[index].vtr = inputVtr.value; atualizarEstatisticas(); };
-  cell2.appendChild(inputVtr);
-
-  // Empenho
-  let cell3 = newRow.insertCell(2);
-  let selectEmpenho = document.createElement("select");
-  for (let key in empenhos) {
-    let option = document.createElement("option");
-    option.value = key; option.text = `${key} - ${empenhos[key]}`;
-    selectEmpenho.appendChild(option);
-  }
-  
-  // Define J1 como padrão
-  selectEmpenho.value = 'J1';
-
-  // Horário início
-  let cell4 = newRow.insertCell(3);
-  cell4.innerText = "";
-
-  // Horário fim
-  let cell5 = newRow.insertCell(4);
-  cell5.innerText = "";
-
-  // Tempo Decorrido
-  let cell6 = newRow.insertCell(5);
-  cell6.innerText = "-";
-
-  // Duração Total
-  let cell7 = newRow.insertCell(6);
-  cell7.innerText = "-";
-
-  // Último J
-  let cell8 = newRow.insertCell(7);
-  cell8.innerText = "J1";
-
-  // Protocolo
-  let cell9 = newRow.insertCell(8);
-  let inputProtocolo = document.createElement("input");
-  inputProtocolo.placeholder = "Nº Protocolo";
-  inputProtocolo.oninput = () => { registros[index].protocolo = inputProtocolo.value; };
-  cell9.appendChild(inputProtocolo);
-
-  // Natureza
-  let cell10 = newRow.insertCell(9);
-  let inputNatureza = document.createElement("input");
-  inputNatureza.placeholder = "Natureza";
-  inputNatureza.oninput = () => { registros[index].natureza = inputNatureza.value; };
-  cell10.appendChild(inputNatureza);
-
-  // Ações
-  let cell11 = newRow.insertCell(10);
-  let deleteBtn = document.createElement("button");
-  deleteBtn.className = "delete-btn";
-  deleteBtn.textContent = "🗑️";
-  deleteBtn.onclick = () => removerLinha(deleteBtn);
-  cell11.appendChild(deleteBtn);
-
-  selectEmpenho.addEventListener("change", function() {
-    const now = new Date();
-    const dataHora = now.toLocaleString('pt-BR');
-    
-    if (!cell4.innerText) {
-      cell4.innerText = dataHora;
-      registros[index].horaInicio = dataHora;
-      cell6.innerText = calcularTempoDecorrido(dataHora);
-    } else {
-      cell5.innerText = dataHora;
-      registros[index].horaFim = dataHora;
-      cell6.innerText = "-";
-      cell7.innerText = calcularDuracao(cell4.innerText, cell5.innerText);
-    }
-    
-    contagem[this.value]++;
-    cell8.innerText = this.value;
-    registros[index].ultimoJ = this.value;
-
-    let unidadeSel = selectUnidade.value;
-    let vtr = inputVtr.value.trim();
-    let protocolo = inputProtocolo.value.trim();
-    let natureza = inputNatureza.value.trim();
-
-    if (unidadeSel) {
-      contagemUnidade[unidadeSel].total++;
-      if (!contagemUnidade[unidadeSel].empenhos[this.value]) {
-        contagemUnidade[unidadeSel].empenhos[this.value] = 0;
-      }
-      contagemUnidade[unidadeSel].empenhos[this.value]++;
-
-      if (vtr && !contagemUnidade[unidadeSel].vtrs.includes(vtr)) {
-        contagemUnidade[unidadeSel].vtrs.push(vtr);
-      }
-
-      if (protocolo) {
-        let protStr = `${this.value}-${protocolo}`;
-        if (!contagemUnidade[unidadeSel].protocolos.includes(protStr)) {
-          contagemUnidade[unidadeSel].protocolos.push(protStr);
-        }
-      }
-
-      if (natureza) {
-        let natStr = `${this.value}-${natureza}`;
-        if (!contagemUnidade[unidadeSel].naturezas.includes(natStr)) {
-          contagemUnidade[unidadeSel].naturezas.push(natStr);
-        }
-      }
-    }
-
-    atualizarPainel();
-    atualizarUnidadeGrid();
-    atualizarEstatisticas();
-  });
-
-  cell3.appendChild(selectEmpenho);
+  salvarDados();
   atualizarEstatisticas();
 }
 
-function exportarDados() {
-  let csv = 'Unidade,VTR,Empenho,Descrição,Horário Início,Horário Fim,Tempo Decorrido,Duração Total,Protocolo,Natureza\n';
+
+// --- Funções de Modal e Filtro ---
+
+function mostrarModalUnidade() { document.getElementById('modalUnidade').style.display = 'flex'; }
+function fecharModalUnidade() { document.getElementById('modalUnidade').style.display = 'none'; document.getElementById('novaUnidade').value = ''; }
+function adicionarUnidade() {
+  const novaUnidade = document.getElementById('novaUnidade').value.trim().toUpperCase();
+  if (novaUnidade && !unidades.includes(novaUnidade)) {
+    unidades.push(novaUnidade);
+    unidades.sort(); // Opcional: manter em ordem alfabética
+    contagemUnidade[novaUnidade] = { total: 0, empenhos: {}, vtrs: [], protocolos: [], naturezas: [] };
+    salvarDados();
+    inicializarFiltros();
+    alert(`Unidade "${novaUnidade}" adicionada com sucesso!`);
+    fecharModalUnidade();
+    reconstruirTabelaEContagens(); 
+  } else if (unidades.includes(novaUnidade)) { alert('Esta unidade já existe!'); } else { alert('Digite o nome da unidade!'); }
+}
+
+function mostrarModalEmpenho() { document.getElementById('modalEmpenho').style.display = 'flex'; }
+function fecharModalEmpenho() { document.getElementById('modalEmpenho').style.display = 'none'; document.getElementById('novoEmpenhoCodigo').value = ''; document.getElementById('novoEmpenhoDescricao').value = ''; document.getElementById('novoEmpenhoColor').value = '#1976d2'; }
+function adicionarEmpenho() {
+  const codigo = document.getElementById('novoEmpenhoCodigo').value.trim().toUpperCase();
+  const descricao = document.getElementById('novoEmpenhoDescricao').value.trim();
+  const cor = document.getElementById('novoEmpenhoColor').value;
   
-  registros.forEach(r => {
-    const duracaoTotal = calcularDuracao(r.horaInicio, r.horaFim);
-    const tempoDecorrido = r.horaFim ? '-' : calcularTempoDecorrido(r.horaInicio);
-    const descricao = r.ultimoJ ? empenhos[r.ultimoJ] : '';
-    csv += `"${r.unidade}","${r.vtr}","${r.ultimoJ}","${descricao}","${r.horaInicio}","${r.horaFim}","${tempoDecorrido}","${duracaoTotal}","${r.protocolo}","${r.natureza}"\n`;
+  if (codigo && descricao && !empenhos[codigo]) {
+    empenhos[codigo] = descricao;
+    coresJ[codigo] = cor;
+    contagem[codigo] = 0;
+    salvarDados();
+    inicializarFiltros();
+    alert(`Empenho "${codigo} - ${descricao}" adicionado com sucesso!`);
+    fecharModalEmpenho();
+    reconstruirTabelaEContagens(); // Atualiza a tabela com o novo empenho
+  } else if (empenhos[codigo]) { alert('Este código de empenho já existe!'); } else { alert('Preencha todos os campos!'); }
+}
+
+function inicializarFiltros() {
+  const filtroUnidade = document.getElementById('filtroUnidade');
+  const filtroEmpenho = document.getElementById('filtroEmpenho');
+  
+  // Limpa e repopula Unidade
+  filtroUnidade.innerHTML = '<option value="">Todas as Unidades</option>';
+  unidades.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u; opt.text = u;
+    filtroUnidade.appendChild(opt);
   });
   
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  const dataAtual = new Date().toISOString().split('T')[0];
-  link.setAttribute('href', url);
-  link.setAttribute('download', `empenho_vtr_${dataAtual}.csv`);
-  link.click();
+  // Limpa e repopula Empenho
+  filtroEmpenho.innerHTML = '<option value="">Todos os Empenhos</option>';
+  for (let key in empenhos) {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.text = `${key} - ${empenhos[key]}`;
+    filtroEmpenho.appendChild(opt);
+  }
+}
+
+function aplicarFiltros() {
+  const filtroU = document.getElementById('filtroUnidade').value;
+  const filtroE = document.getElementById('filtroEmpenho').value;
+  const tbody = document.getElementById('empenhoTable').getElementsByTagName('tbody')[0];
+  
+  for (let i = 0; i < tbody.rows.length; i++) {
+    const row = tbody.rows[i];
+    const registro = registros[i];
+    
+    // Pega os valores do registro (ou da célula, se preferir):
+    const unidade = registro.unidade;
+    const empenho = registro.ultimoJ;
+    
+    let mostrar = true;
+    if (filtroU && unidade !== filtroU) mostrar = false;
+    if (filtroE && empenho !== filtroE) mostrar = false;
+    
+    row.style.display = mostrar ? '' : 'none';
+  }
+}
+
+function limparFiltros() {
+  document.getElementById('filtroUnidade').value = '';
+  document.getElementById('filtroEmpenho').value = '';
+  aplicarFiltros();
+}
+
+function exportarDados() {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF for BOM (better excel compatibility)
+    csvContent += "Unidade;VTR;Empenho;Horário Início;Horário Fim;Duração Total;Protocolo;Natureza\n";
+
+    registros.forEach(r => {
+        const row = [
+            r.unidade || '',
+            r.vtr || '',
+            `${r.ultimoJ} - ${empenhos[r.ultimoJ]}` || '',
+            formatarDataParaExibicao(r.horaInicio) || '',
+            formatarDataParaExibicao(r.horaFim) || '',
+            calcularDuracao(r.horaInicio, r.horaFim) || '',
+            r.protocolo || '',
+            r.natureza || ''
+        ].join(";");
+        csvContent += row + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `EmpenhoVTR_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`);
+    document.body.appendChild(link); // Required for Firefox
+    link.click();
+    document.body.removeChild(link);
 }
 
 function limparTudo() {
-  if (confirm('ATENÇÃO: Isso irá apagar todos os dados. Deseja continuar?')) {
-    const tbody = document.getElementById('empenhoTable').getElementsByTagName('tbody')[0];
-    tbody.innerHTML = '';
-    registros = [];
-    for (let key in contagem) contagem[key] = 0;
-    unidades.forEach(u => contagemUnidade[u] = { total: 0, empenhos: {}, vtrs: [], protocolos: [], naturezas: [] });
-    unidadeFixa = null; // Reseta a unidade fixa
-    atualizarPainel();
-    atualizarUnidadeGrid();
-    atualizarEstatisticas();
+  if (confirm('ATENÇÃO: Isso irá apagar *TODOS* os dados, incluindo unidades e empenhos customizados, e não poderá ser desfeito. Deseja continuar?')) {
+    localStorage.clear();
+    location.reload(); // Recarrega a página para resetar as variáveis JS aos valores iniciais
   }
 }
 
 // Inicialização
-inicializarFiltros();
-atualizarPainel();
-atualizarUnidadeGrid();
-atualizarEstatisticas();
+carregarDados();
 </script>
 
 </body>
