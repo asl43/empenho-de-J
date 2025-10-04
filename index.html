@@ -2,100 +2,269 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Empenho de VTR</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f7fc;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 20px;
+      min-height: 100vh;
     }
-    h2 { margin-top: 0; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     }
-    table, th, td {
-      border: 1px solid #ccc;
-      text-align: center;
-      padding: 6px;
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    select, input { padding: 4px; width: 95%; }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
     button {
-      margin: 10px 0;
-      padding: 8px 12px;
+      padding: 10px 20px;
       cursor: pointer;
       background: #1976d2;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    button:hover { background: #0d47a1; }
-    #painel {
-      margin-top: 30px;
-      padding: 15px;
-      background: white;
-      border: 1px solid #ccc;
+    button:hover { background: #0d47a1; transform: translateY(-2px); }
+    button.danger { background: #d32f2f; }
+    button.danger:hover { background: #b71c1c; }
+    button.success { background: #388e3c; }
+    button.success:hover { background: #2e7d32; }
+    
+    .table-container {
+      overflow-x: auto;
+      margin-bottom: 30px;
       border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    #painel h3 { margin-top: 0; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    td {
+      border: 1px solid #e0e0e0;
+      padding: 8px;
+      text-align: center;
+    }
+    tr:hover { background: #f5f5f5; }
+    select, input {
+      padding: 6px;
+      width: 100%;
+      border: 2px solid #e0e0e0;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border 0.3s;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: #1976d2;
+    }
+    
+    .painel {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .painel h3 {
+      color: #2c3e50;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
       gap: 10px;
     }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+    }
     .card {
-      background: #e3f2fd;
-      padding: 10px;
-      border-radius: 6px;
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      padding: 15px;
+      border-radius: 8px;
       text-align: center;
       font-weight: bold;
-      min-height: 150px;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: transform 0.3s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .card-unidade {
+      background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+      align-items: flex-start;
+      text-align: left;
     }
     .tag {
       display: inline-block;
-      padding: 2px 6px;
+      padding: 4px 8px;
       border-radius: 4px;
-      margin: 2px;
-      font-size: 0.85em;
+      margin: 3px;
+      font-size: 0.8em;
       color: white;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .section-title {
       font-weight: bold;
-      margin-top: 5px;
+      margin-top: 10px;
+      color: #424242;
+      font-size: 0.9em;
+    }
+    .delete-btn {
+      background: #d32f2f;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .delete-btn:hover { background: #b71c1c; }
+    
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .stat-box {
+      background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .stat-box h4 { font-size: 14px; margin-bottom: 8px; opacity: 0.9; }
+    .stat-box .number { font-size: 32px; font-weight: bold; }
+    
+    .filter-section {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .filter-section h4 { margin-bottom: 10px; color: #2c3e50; }
+    .filter-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filter-options select {
+      flex: 1;
+      min-width: 200px;
     }
   </style>
 </head>
 <body>
 
-<h2>📋 Sistema de Controle de Empenho de VTR</h2>
+<div class="container">
+  <h2>
+    <span>🚓</span>
+    Sistema de Controle de Empenho de VTR
+  </h2>
 
-<button onclick="addRow()">➕ Adicionar Linha</button>
+  <div class="stats-summary">
+    <div class="stat-box">
+      <h4>Total de Registros</h4>
+      <div class="number" id="totalRegistros">0</div>
+    </div>
+    <div class="stat-box" style="background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%);">
+      <h4>VTRs Ativas</h4>
+      <div class="number" id="totalVtrs">0</div>
+    </div>
+    <div class="stat-box" style="background: linear-gradient(135deg, #ff9800 0%, #ffa726 100%);">
+      <h4>Unidades Ativas</h4>
+      <div class="number" id="totalUnidades">0</div>
+    </div>
+  </div>
 
-<table id="empenhoTable">
-  <thead>
-    <tr>
-      <th>Unidade</th>
-      <th>VTR</th>
-      <th>Empenho</th>
-      <th>Horário Início</th>
-      <th>Horário Fim</th>
-      <th>Último J</th>
-      <th>Protocolo</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <div class="filter-section">
+    <h4>🔍 Filtros</h4>
+    <div class="filter-options">
+      <select id="filtroUnidade" onchange="aplicarFiltros()">
+        <option value="">Todas as Unidades</option>
+      </select>
+      <select id="filtroEmpenho" onchange="aplicarFiltros()">
+        <option value="">Todos os Empenhos</option>
+      </select>
+      <button onclick="limparFiltros()">Limpar Filtros</button>
+    </div>
+  </div>
 
-<div id="painel">
-  <h3>📊 Painel de Contagem por Empenho</h3>
-  <div class="grid" id="contagemGrid"></div>
-</div>
+  <div class="controls">
+    <button onclick="addRow()">➕ Adicionar Registro</button>
+    <button class="success" onclick="exportarDados()">📥 Exportar CSV</button>
+    <button class="danger" onclick="limparTudo()">🗑️ Limpar Tudo</button>
+  </div>
 
-<div id="painel">
-  <h3>📌 Estatística por Unidade</h3>
-  <div class="grid" id="unidadeGrid"></div>
+  <div class="table-container">
+    <table id="empenhoTable">
+      <thead>
+        <tr>
+          <th>Unidade</th>
+          <th>VTR</th>
+          <th>Empenho</th>
+          <th>Horário Início</th>
+          <th>Horário Fim</th>
+          <th>Tempo Decorrido</th>
+          <th>Duração Total</th>
+          <th>Último J</th>
+          <th>Protocolo</th>
+          <th>Natureza</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="painel">
+    <h3><span>📊</span> Painel de Contagem por Empenho</h3>
+    <div class="grid" id="contagemGrid"></div>
+  </div>
+
+  <div class="painel">
+    <h3><span>📌</span> Estatística por Unidade</h3>
+    <div class="grid" id="unidadeGrid"></div>
+  </div>
 </div>
 
 <script>
@@ -117,7 +286,7 @@ const empenhos = {
   "J5": "Abastecimento",
   "J6": "Limpeza de viatura",
   "J7": "Manutenção mecânica",
-  "J8": "Necessidade Fisiológicas",
+  "J8": "Necessidades Fisiológicas",
   "J9": "Deslocamento para ocorrência",
   "J10": "Chegada no local da ocorrência",
   "J11": "Saída do local da ocorrência",
@@ -125,7 +294,6 @@ const empenhos = {
   "J15": "Operação Policial Militar"
 };
 
-// Cores diferentes para cada tipo de J
 const coresJ = {
   "J1": "#1b5e20", "J2": "#33691e", "J3": "#f57f17", "J4": "#ff6f00",
   "J5": "#e65100", "J6": "#bf360c", "J7": "#6a1b9a", "J8": "#4a148c",
@@ -133,13 +301,106 @@ const coresJ = {
   "J15": "#c2185b"
 };
 
-// Contadores gerais
+let registros = [];
 let contagem = {};
 for (let key in empenhos) contagem[key] = 0;
 
-// Contagem por unidade
 let contagemUnidade = {};
-unidades.forEach(u => contagemUnidade[u] = { total: 0, empenhos: {}, vtrs: [], protocolos: [] });
+unidades.forEach(u => contagemUnidade[u] = { total: 0, empenhos: {}, vtrs: [], protocolos: [], naturezas: [] });
+
+let unidadeFixa = null; // Armazena a unidade selecionada
+
+// Inicializar filtros
+function inicializarFiltros() {
+  const filtroUnidade = document.getElementById('filtroUnidade');
+  const filtroEmpenho = document.getElementById('filtroEmpenho');
+  
+  unidades.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u;
+    opt.text = u;
+    filtroUnidade.appendChild(opt);
+  });
+  
+  for (let key in empenhos) {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.text = `${key} - ${empenhos[key]}`;
+    filtroEmpenho.appendChild(opt);
+  }
+}
+
+function aplicarFiltros() {
+  const filtroU = document.getElementById('filtroUnidade').value;
+  const filtroE = document.getElementById('filtroEmpenho').value;
+  const tbody = document.getElementById('empenhoTable').getElementsByTagName('tbody')[0];
+  
+  for (let i = 0; i < tbody.rows.length; i++) {
+    const row = tbody.rows[i];
+    const unidade = row.cells[0].querySelector('select').value;
+    const empenho = row.cells[6].innerText;
+    
+    let mostrar = true;
+    if (filtroU && unidade !== filtroU) mostrar = false;
+    if (filtroE && empenho !== filtroE) mostrar = false;
+    
+    row.style.display = mostrar ? '' : 'none';
+  }
+}
+
+function limparFiltros() {
+  document.getElementById('filtroUnidade').value = '';
+  document.getElementById('filtroEmpenho').value = '';
+  aplicarFiltros();
+}
+
+function calcularDuracao(inicio, fim) {
+  if (!inicio || !fim) return '-';
+  const d1 = new Date(inicio.split(' ')[0].split('/').reverse().join('-') + ' ' + inicio.split(' ')[1]);
+  const d2 = new Date(fim.split(' ')[0].split('/').reverse().join('-') + ' ' + fim.split(' ')[1]);
+  const diff = Math.abs(d2 - d1) / 1000 / 60;
+  const horas = Math.floor(diff / 60);
+  const mins = Math.floor(diff % 60);
+  return `${horas}h ${mins}m`;
+}
+
+function calcularTempoDecorrido(inicio) {
+  if (!inicio) return '-';
+  const d1 = new Date(inicio.split(' ')[0].split('/').reverse().join('-') + ' ' + inicio.split(' ')[1]);
+  const agora = new Date();
+  const diff = Math.abs(agora - d1) / 1000 / 60;
+  const horas = Math.floor(diff / 60);
+  const mins = Math.floor(diff % 60);
+  return `${horas}h ${mins}m`;
+}
+
+// Atualizar tempo decorrido a cada minuto
+setInterval(() => {
+  const tbody = document.getElementById('empenhoTable').getElementsByTagName('tbody')[0];
+  for (let i = 0; i < tbody.rows.length; i++) {
+    const row = tbody.rows[i];
+    const inicio = row.cells[3].innerText;
+    const fim = row.cells[4].innerText;
+    
+    if (inicio && !fim) {
+      row.cells[5].innerText = calcularTempoDecorrido(inicio);
+    }
+  }
+}, 60000); // Atualiza a cada 1 minuto
+
+function atualizarEstatisticas() {
+  const vtrsUnicas = new Set();
+  const unidadesAtivas = new Set();
+  
+  registros.forEach(r => {
+    if (r.vtr) vtrsUnicas.add(r.vtr);
+    if (r.unidade) unidadesAtivas.add(r.unidade);
+  });
+  
+  document.getElementById('totalRegistros').textContent = registros.length;
+  document.getElementById('totalVtrs').textContent = vtrsUnicas.size;
+  document.getElementById('totalUnidades').textContent = unidadesAtivas.size;
+}
 
 function atualizarPainel() {
   const grid = document.getElementById("contagemGrid");
@@ -147,7 +408,11 @@ function atualizarPainel() {
   for (let key in empenhos) {
     let card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `${key} - ${empenhos[key]}<br><span style="font-size:18px">${contagem[key]}</span>`;
+    card.innerHTML = `
+      <div style="font-size:16px;margin-bottom:5px">${key}</div>
+      <div style="font-size:12px;opacity:0.8;margin-bottom:8px">${empenhos[key]}</div>
+      <div style="font-size:28px;font-weight:bold;color:#1976d2">${contagem[key]}</div>
+    `;
     grid.appendChild(card);
   }
 }
@@ -158,48 +423,118 @@ function atualizarUnidadeGrid() {
   for (let unidade in contagemUnidade) {
     if (contagemUnidade[unidade].total > 0) {
       let card = document.createElement("div");
-      card.className = "card";
+      card.className = "card card-unidade";
 
-      // Lista de empenhos com cores e protocolos
       let listaEmpenhos = "";
       for (let e in contagemUnidade[unidade].empenhos) {
-        // Mostrar contagem e protocolos correspondentes
-        let protos = contagemUnidade[unidade].protocolos.filter(p => p.includes(e)).join(", ");
-        listaEmpenhos += `<span class="tag" style="background:${coresJ[e]}">${e}(${contagemUnidade[unidade].empenhos[e]})${protos ? ' - P: '+protos : ''}</span> `;
+        // Filtrar protocolos e naturezas para este empenho específico
+        const protocolosDoEmpenho = contagemUnidade[unidade].protocolos.filter(p => p.startsWith(e + '-'));
+        const naturezasDoEmpenho = contagemUnidade[unidade].naturezas.filter(n => n.startsWith(e + '-'));
+        
+        let detalhes = '';
+        if (protocolosDoEmpenho.length > 0 || naturezasDoEmpenho.length > 0) {
+          detalhes = '<br><small>';
+          if (protocolosDoEmpenho.length > 0) {
+            detalhes += 'P: ' + protocolosDoEmpenho.map(p => p.split('-')[1]).join(', ');
+          }
+          if (naturezasDoEmpenho.length > 0) {
+            if (protocolosDoEmpenho.length > 0) detalhes += ' | ';
+            detalhes += 'N: ' + naturezasDoEmpenho.map(n => n.split('-')[1]).join(', ');
+          }
+          detalhes += '</small>';
+        }
+        
+        listaEmpenhos += `<span class="tag" style="background:${coresJ[e]}">${e} (${contagemUnidade[unidade].empenhos[e]})${detalhes}</span> `;
       }
 
-      // Lista de VTRs
-      let listaVTRs = contagemUnidade[unidade].vtrs.map(v => `<span class="tag" style="background:#64b5f6">${v}</span>`).join(" ");
+      let listaVTRs = contagemUnidade[unidade].vtrs.map(v => 
+        `<span class="tag" style="background:#64b5f6">${v}</span>`
+      ).join(" ");
 
       card.innerHTML = `
-        <strong>${unidade}</strong><br>
-        Total: ${contagemUnidade[unidade].total}<br>
-        <div class="section-title">Empenhos:</div> ${listaEmpenhos}<br>
-        <div class="section-title">VTRs:</div> ${listaVTRs}
+        <strong style="font-size:16px;color:#1976d2;margin-bottom:8px;display:block">${unidade}</strong>
+        <div style="font-size:14px;margin-bottom:5px">Total de Registros: <strong>${contagemUnidade[unidade].total}</strong></div>
+        <div class="section-title">Empenhos:</div>
+        <div style="margin:5px 0">${listaEmpenhos || '<em>Nenhum</em>'}</div>
+        <div class="section-title">VTRs:</div>
+        <div style="margin:5px 0">${listaVTRs || '<em>Nenhuma</em>'}</div>
       `;
       grid.appendChild(card);
     }
   }
 }
 
+function removerLinha(btn) {
+  const row = btn.closest('tr');
+  const index = row.rowIndex - 1;
+  
+  if (confirm('Deseja realmente remover este registro?')) {
+    const registro = registros[index];
+    if (registro.ultimoJ) {
+      contagem[registro.ultimoJ]--;
+      const unidade = registro.unidade;
+      if (contagemUnidade[unidade]) {
+        contagemUnidade[unidade].total--;
+        if (contagemUnidade[unidade].empenhos[registro.ultimoJ]) {
+          contagemUnidade[unidade].empenhos[registro.ultimoJ]--;
+        }
+      }
+    }
+    
+    registros.splice(index, 1);
+    row.remove();
+    atualizarPainel();
+    atualizarUnidadeGrid();
+    atualizarEstatisticas();
+  }
+}
+
 function addRow() {
   let table = document.getElementById("empenhoTable").getElementsByTagName("tbody")[0];
   let newRow = table.insertRow();
+  
+  const registro = {
+    unidade: unidadeFixa || '',
+    vtr: '',
+    ultimoJ: 'J1',
+    horaInicio: '',
+    horaFim: '',
+    protocolo: '',
+    natureza: ''
+  };
+  registros.push(registro);
+  const index = registros.length - 1;
 
   // Unidade
   let cell1 = newRow.insertCell(0);
   let selectUnidade = document.createElement("select");
+  selectUnidade.innerHTML = '<option value="">Selecione...</option>';
   unidades.forEach(u => {
     let option = document.createElement("option");
     option.value = u; option.text = u;
     selectUnidade.appendChild(option);
   });
+  
+  // Se há unidade fixa, seleciona automaticamente
+  if (unidadeFixa) {
+    selectUnidade.value = unidadeFixa;
+    registro.unidade = unidadeFixa;
+  }
+  
+  selectUnidade.onchange = () => { 
+    registros[index].unidade = selectUnidade.value;
+    // Define como unidade fixa se for a primeira seleção
+    if (!unidadeFixa && selectUnidade.value) {
+      unidadeFixa = selectUnidade.value;
+    }
+  };
   cell1.appendChild(selectUnidade);
 
   // VTR
   let cell2 = newRow.insertCell(1);
   let inputVtr = document.createElement("input");
   inputVtr.placeholder = "Nome da VTR";
+  inputVtr.oninput = () => { registros[index].vtr = inputVtr.value; atualizarEstatisticas(); };
   cell2.appendChild(inputVtr);
 
   // Empenho
@@ -210,63 +545,149 @@ function addRow() {
     option.value = key; option.text = `${key} - ${empenhos[key]}`;
     selectEmpenho.appendChild(option);
   }
+  
+  // Define J1 como padrão
+  selectEmpenho.value = 'J1';
 
   // Horário início
-  let cell4 = newRow.insertCell(3); cell4.innerText = "";
+  let cell4 = newRow.insertCell(3);
+  cell4.innerText = "";
 
   // Horário fim
-  let cell5 = newRow.insertCell(4); cell5.innerText = "";
+  let cell5 = newRow.insertCell(4);
+  cell5.innerText = "";
+
+  // Tempo Decorrido
+  let cell6 = newRow.insertCell(5);
+  cell6.innerText = "-";
+
+  // Duração Total
+  let cell7 = newRow.insertCell(6);
+  cell7.innerText = "-";
 
   // Último J
-  let cell6 = newRow.insertCell(5); cell6.innerText = "";
+  let cell8 = newRow.insertCell(7);
+  cell8.innerText = "J1";
 
   // Protocolo
-  let cell7 = newRow.insertCell(6);
+  let cell9 = newRow.insertCell(8);
   let inputProtocolo = document.createElement("input");
   inputProtocolo.placeholder = "Nº Protocolo";
-  cell7.appendChild(inputProtocolo);
+  inputProtocolo.oninput = () => { registros[index].protocolo = inputProtocolo.value; };
+  cell9.appendChild(inputProtocolo);
 
-  // Evento de seleção de empenho
+  // Natureza
+  let cell10 = newRow.insertCell(9);
+  let inputNatureza = document.createElement("input");
+  inputNatureza.placeholder = "Natureza";
+  inputNatureza.oninput = () => { registros[index].natureza = inputNatureza.value; };
+  cell10.appendChild(inputNatureza);
+
+  // Ações
+  let cell11 = newRow.insertCell(10);
+  let deleteBtn = document.createElement("button");
+  deleteBtn.className = "delete-btn";
+  deleteBtn.textContent = "🗑️";
+  deleteBtn.onclick = () => removerLinha(deleteBtn);
+  cell11.appendChild(deleteBtn);
+
   selectEmpenho.addEventListener("change", function() {
-    let now = new Date().toLocaleString();
-    if (!cell4.innerText) { cell4.innerText = now; } 
-    else { cell5.innerText = now; }
+    const now = new Date();
+    const dataHora = now.toLocaleString('pt-BR');
+    
+    if (!cell4.innerText) {
+      cell4.innerText = dataHora;
+      registros[index].horaInicio = dataHora;
+      cell6.innerText = calcularTempoDecorrido(dataHora);
+    } else {
+      cell5.innerText = dataHora;
+      registros[index].horaFim = dataHora;
+      cell6.innerText = "-";
+      cell7.innerText = calcularDuracao(cell4.innerText, cell5.innerText);
+    }
+    
     contagem[this.value]++;
-    cell6.innerText = this.value;
+    cell8.innerText = this.value;
+    registros[index].ultimoJ = this.value;
 
     let unidadeSel = selectUnidade.value;
     let vtr = inputVtr.value.trim();
     let protocolo = inputProtocolo.value.trim();
+    let natureza = inputNatureza.value.trim();
 
-    contagemUnidade[unidadeSel].total++;
-    if (!contagemUnidade[unidadeSel].empenhos[this.value]) {
-      contagemUnidade[unidadeSel].empenhos[this.value] = 0;
-    }
-    contagemUnidade[unidadeSel].empenhos[this.value]++;
+    if (unidadeSel) {
+      contagemUnidade[unidadeSel].total++;
+      if (!contagemUnidade[unidadeSel].empenhos[this.value]) {
+        contagemUnidade[unidadeSel].empenhos[this.value] = 0;
+      }
+      contagemUnidade[unidadeSel].empenhos[this.value]++;
 
-    // Adiciona VTR
-    if (vtr && !contagemUnidade[unidadeSel].vtrs.includes(vtr)) {
-      contagemUnidade[unidadeSel].vtrs.push(vtr);
-    }
+      if (vtr && !contagemUnidade[unidadeSel].vtrs.includes(vtr)) {
+        contagemUnidade[unidadeSel].vtrs.push(vtr);
+      }
 
-    // Adiciona protocolo junto ao J
-    if (protocolo) {
-      let protStr = `${this.value}-${protocolo}`;
-      if (!contagemUnidade[unidadeSel].protocolos.includes(protStr)) {
-        contagemUnidade[unidadeSel].protocolos.push(protStr);
+      if (protocolo) {
+        let protStr = `${this.value}-${protocolo}`;
+        if (!contagemUnidade[unidadeSel].protocolos.includes(protStr)) {
+          contagemUnidade[unidadeSel].protocolos.push(protStr);
+        }
+      }
+
+      if (natureza) {
+        let natStr = `${this.value}-${natureza}`;
+        if (!contagemUnidade[unidadeSel].naturezas.includes(natStr)) {
+          contagemUnidade[unidadeSel].naturezas.push(natStr);
+        }
       }
     }
 
     atualizarPainel();
     atualizarUnidadeGrid();
+    atualizarEstatisticas();
   });
 
   cell3.appendChild(selectEmpenho);
+  atualizarEstatisticas();
 }
 
-// Inicializa painel
+function exportarDados() {
+  let csv = 'Unidade,VTR,Empenho,Descrição,Horário Início,Horário Fim,Tempo Decorrido,Duração Total,Protocolo,Natureza\n';
+  
+  registros.forEach(r => {
+    const duracaoTotal = calcularDuracao(r.horaInicio, r.horaFim);
+    const tempoDecorrido = r.horaFim ? '-' : calcularTempoDecorrido(r.horaInicio);
+    const descricao = r.ultimoJ ? empenhos[r.ultimoJ] : '';
+    csv += `"${r.unidade}","${r.vtr}","${r.ultimoJ}","${descricao}","${r.horaInicio}","${r.horaFim}","${tempoDecorrido}","${duracaoTotal}","${r.protocolo}","${r.natureza}"\n`;
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  const dataAtual = new Date().toISOString().split('T')[0];
+  link.setAttribute('href', url);
+  link.setAttribute('download', `empenho_vtr_${dataAtual}.csv`);
+  link.click();
+}
+
+function limparTudo() {
+  if (confirm('ATENÇÃO: Isso irá apagar todos os dados. Deseja continuar?')) {
+    const tbody = document.getElementById('empenhoTable').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = '';
+    registros = [];
+    for (let key in contagem) contagem[key] = 0;
+    unidades.forEach(u => contagemUnidade[u] = { total: 0, empenhos: {}, vtrs: [], protocolos: [], naturezas: [] });
+    unidadeFixa = null; // Reseta a unidade fixa
+    atualizarPainel();
+    atualizarUnidadeGrid();
+    atualizarEstatisticas();
+  }
+}
+
+// Inicialização
+inicializarFiltros();
 atualizarPainel();
 atualizarUnidadeGrid();
+atualizarEstatisticas();
 </script>
 
 </body>
